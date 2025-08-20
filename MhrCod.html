@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MhrCod - محرر أكواد متقدم</title>
+
+    <!-- PWA Manifest Link - هذا الملف يجب أن يكون منفصلاً في نفس المجلد (manifest.json) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#252526">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MhrCod">
+
+    <!-- أيقونات PWA (ضعها في مجلد "icons" في نفس مستوى ملف HTML) -->
+    <!-- <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"> -->
+    <!-- <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png"> -->
+    <!-- <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png"> -->
+
+    <style>
+        /* ========================================= */
+        /* CSS الرئيسي للتصميم - مشابه لـ VS Code مع تحسينات للرؤية */
+        /* ========================================= */
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* ملء ارتفاع الشاشة بالكامل */
+            overflow: hidden; /* لمنع ظهور أشرطة التمرير على مستوى الجسم */
+            background-color: #1e1e1e; /* خلفية VS Code الداكنة */
+            color: #d4d4d4; /* لون النص الأساسي الفاتح */
+            font-size: 16px; /* حجم خط أساسي أكبر لسهولة القراءة */
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            user-select: none; /* لمنع التحديد غير المقصود على اللمس */
+        }
+
+        /* حاوية التطبيق الرئيسية - تستخدم Flexbox لتوزيع المساحة */
+        .app-container {
+            display: flex;
+            flex: 1; /* تشغل كل المساحة المتاحة عمودياً */
+            overflow: hidden; /* لمنع تجاوز المحتوى */
+        }
+
+        /* المحتوى الرئيسي الذي يحتوي على المحرر واللوحة السفلية */
+        .main-content-area {
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* تشغل كل المساحة الأفقية المتاحة بين الأشرطة الجانبية */
+            overflow: hidden;
+            border-left: 1px solid #000;
+            border-right: 1px solid #000;
+        }
+
+        /* ========================================= */
+        /* شريط الأدوات العلوي (Top Toolbar) */
+        /* ========================================= */
+        .top-toolbar {
+            background-color: #3c3c3c; /* لون أغمق قليلاً */
+            padding: 12px 15px; /* مساحة داخلية أكبر للأزرار */
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #000; /* خط فاصل واضح */
+            gap: 15px; /* مسافة أكبر بين الأزرار */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* ظل خفيف */
+            min-height: 60px; /* ارتفاع ثابت أكبر لشريط الأدوات */
+        }
+        .top-toolbar .app-title {
+            color: #007acc; /* لون مميز لعنوان التطبيق */
+            font-size: 24px; /* حجم خط كبير جداً */
+            font-weight: bold;
+            margin-right: auto; /* يدفع الأزرار لليسار */
+            padding-right: 10px; /* مسافة للابتعاد عن حافة الشاشة */
+            white-space: nowrap;
+        }
+        .top-toolbar button {
+            background-color: #007acc; /* لون أزرق مميز */
+            color: white;
+            border: none;
+            padding: 12px 20px; /* أزرار كبيرة وسهلة الضغط */
+            border-radius: 6px; /* حواف أكثر استدارة */
+            cursor: pointer;
+            font-size: 16px; /* حجم خط كبير للأزرار */
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* مسافة بين الأيقونة والنص */
+            flex-shrink: 0; /* منع انكماش الأزرار */
+        }
+        .top-toolbar button:hover {
+            background-color: #0060a0;
+            transform: translateY(-1px); /* تأثير رفع خفيف عند التحويم */
+        }
+        .top-toolbar button:active {
+            transform: translateY(0); /* تأثير ضغط */
+        }
+        .top-toolbar button.disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        /* أيقونات الأزرار (استخدام رموز Unicode أو أيقونات SVG مضمنة) */
+        .top-toolbar button::before {
+            font-size: 18px; /* حجم أكبر للأيقونات */
+        }
+        #open-folder-btn::before { content: '📂'; }
+        #new-file-btn::before { content: '📄'; }
+        #save-file-btn::before { content: '💾'; }
+        #run-html-btn::before { content: '▶️'; }
+        #settings-btn::before { content: '⚙️'; }
+
+        /* ========================================= */
+        /* الأشرطة الجانبية (Sidebars) */
+        /* ========================================= */
+        .left-sidebar, .right-sidebar {
+            background-color: #252526; /* خلفية الأشرطة الجانبية */
+            width: 300px; /* عرض أوسع لسهولة القراءة والضغط */
+            min-width: 280px; /* الحد الأدنى للعرض */
+            max-width: 400px; /* الحد الأقصى للعرض */
+            overflow-y: auto; /* تفعيل التمرير العمودي للمحتوى الزائد */
+            padding: 15px 0; /* مساحة داخلية علوية وسفلية */
+            flex-shrink: 0; /* منع انكماش الأشرطة الجانبية */
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3); /* ظل داخلي */
+            position: relative;
+        }
+        .left-sidebar { border-right: 1px solid #000; }
+        .right-sidebar { border-left: 1px solid #000; }
+
+        .sidebar-header {
+            color: #007acc; /* لون أزرق مميز للعناوين */
+            font-size: 20px; /* حجم خط أكبر للعناوين */
+            font-weight: bold;
+            padding: 0 15px 15px; /* مسافة داخلية سفلية */
+            border-bottom: 1px solid #333;
+            margin-bottom: 15px;
+        }
+
+        /* رسالة عدم وجود مجلد مفتوح */
+        .no-content-message {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 1.1em; /* حجم خط أكبر */
+            line-height: 1.6;
+        }
+
+        /* مستكشف الملفات (File Explorer) */
+        .file-explorer ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .file-explorer li {
+            padding: 12px 20px; /* مساحة أكبر لعناصر القائمة */
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* إظهار النقاط (...) للنص الطويل */
+            display: flex;
+            align-items: center;
+            gap: 10px; /* مسافة بين الأيقونة واسم الملف */
+            font-size: 16px; /* حجم خط أكبر لأسماء الملفات */
+            border-bottom: 1px solid rgba(0,0,0,0.1); /* خط فاصل خفيف */
+        }
+        .file-explorer li:last-child {
+            border-bottom: none;
+        }
+        .file-explorer li.active {
+            background-color: #0e639c; /* لون خلفية للنشط */
+            color: #ffffff; /* نص أبيض للنشط */
+            font-weight: bold;
+        }
+        .file-explorer li:hover:not(.active) {
+            background-color: #3a3a3a; /* لون خلفية عند التحويم */
+        }
+        .file-explorer .file-icon::before { content: '📄'; margin-left: 5px; font-size: 18px;}
+        .file-explorer .folder-icon::before { content: '📁'; margin-left: 5px; font-size: 18px; color: #fce205; /* لون أيقونة المجلد */ }
+        /* أيقونات محددة لأنواع الملفات */
+        .file-explorer li[data-file-ext="html"] .file-icon::before { content: '🌐'; color: #e34c26; }
+        .file-explorer li[data-file-ext="css"] .file-icon::before { content: '🎨'; color: #264de4; }
+        .file-explorer li[data-file-ext="js"] .file-icon::before { content: '💡'; color: #f7df1e; }
+        .file-explorer li[data-file-ext="java"] .file-icon::before { content: '☕'; color: #e02128; }
+        .file-explorer li[data-file-ext="c"] .file-icon::before,
+        .file-explorer li[data-file-ext="cpp"] .file-icon::before { content: '⚙️'; color: #00599c; }
+        .file-explorer li[data-file-ext="json"] .file-icon::before { content: '📦'; color: #ffe600; }
+        .file-explorer li[data-file-ext="md"] .file-icon::before { content: '📝'; color: #087c94; }
+
+        /* قائمة الأخطاء (Error List) */
+        .error-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .error-list li {
+            background-color: #3f2e2e; /* خلفية حمراء داكنة للأخطاء */
+            border-left: 5px solid #ff4444; /* خط أحمر سميك على اليسار */
+            padding: 10px 15px; /* مساحة داخلية جيدة */
+            margin-bottom: 8px; /* مسافة بين عناصر القائمة */
+            cursor: pointer;
+            font-size: 14px; /* حجم خط مناسب */
+            color: #ffeaea; /* لون نص فاتح جداً */
+            line-height: 1.4;
+            border-radius: 4px; /* حواف مستديرة قليلاً */
+            transition: background-color 0.2s ease;
+        }
+        .error-list li:hover {
+            background-color: #5f3e3e; /* لون أغمق عند التحويم */
+        }
+        .error-list li span {
+            display: block; /* كل جزء في سطر منفصل */
+        }
+        .error-list li .line-col {
+            font-size: 12px; /* خط أصغر لخط وعمود الخطأ */
+            color: #ccc;
+            margin-top: 5px;
+        }
+
+        /* ========================================= */
+        /* منطقة التحرير الرئيسية (Main Editing Area) */
+        /* ========================================= */
+        .editor-area {
+            flex: 1; /* تشغل كل المساحة المتاحة عمودياً */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: #1e1e1e;
+        }
+        .editor-tabs {
+            display: flex;
+            background-color: #252526;
+            border-bottom: 1px solid #000;
+            overflow-x: auto; /* تمكين التمرير الأفقي للتبويبات الزائدة */
+            -webkit-overflow-scrolling: touch; /* لتحسين التمرير على اللمس */
+            scrollbar-width: none; /* إخفاء شريط التمرير لـ Firefox */
+            -ms-overflow-style: none;  /* إخفاء شريط التمرير لـ IE/Edge */
+            min-height: 45px; /* ارتفاع ثابت للتبويبات */
+        }
+        /* إخفاء شريط التمرير لـ WebKit (Chrome, Safari) */
+        .editor-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .editor-tab {
+            padding: 10px 18px; /* مساحة داخلية أكبر للتبويبات */
+            color: #aaa;
+            cursor: pointer;
+            border-left: 1px solid #333; /* خط فاصل بين التبويبات */
+            white-space: nowrap; /* منع التفاف النص */
+            font-size: 15px; /* حجم خط التاب */
+            display: flex;
+            align-items: center;
+            gap: 8px; /* مسافة بين اسم الملف وزر الإغلاق */
+            transition: background-color 0.2s ease, color 0.2s ease;
+            flex-shrink: 0; /* منع انكماش التاب */
+        }
+        .editor-tab:first-child { border-left: none; } /* لا يوجد خط على أول تاب */
+        .editor-tab.active {
+            background-color: #1e1e1e; /* لون خلفية للتاب النشط */
+            color: #fff; /* نص أبيض للتاب النشط */
+            border-bottom: 2px solid #007acc; /* خط أزرق مميز تحت التاب النشط */
+        }
+        .editor-tab:hover:not(.active) {
+            background-color: #3a3a3a; /* لون خلفية عند التحويم */
+        }
+        .editor-tab button.close-tab {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 14px; /* حجم خط زر الإغلاق */
+            cursor: pointer;
+            padding: 0 5px;
+            transition: color 0.2s ease;
+        }
+        .editor-tab button.close-tab:hover {
+            color: #fff;
+            background-color: #555;
+            border-radius: 4px;
+        }
+
+        #monaco-editor {
+            flex: 1; /* يشغل كل المساحة المتبقية داخل منطقة التحرير */
+            min-height: 250px; /* ارتفاع أدنى لضمان الظهور */
+            overflow: hidden;
+        }
+
+        /* ========================================= */
+        /* المنطقة السفلية (Bottom Panel) */
+        /* ========================================= */
+        .bottom-panel {
+            height: 300px; /* ارتفاع ثابت أكبر للوحة السفلية */
+            min-height: 200px; /* لتجنب الاختفاء التام */
+            background-color: #1e1e1e;
+            border-top: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2); /* ظل علوي */
+        }
+        .bottom-tabs {
+            display: flex;
+            background-color: #252526;
+            border-bottom: 1px solid #000;
+            min-height: 40px; /* ارتفاع ثابت لتبويبات اللوحة السفلية */
+        }
+        .bottom-tab {
+            padding: 10px 20px; /* مساحة أكبر للتبويبات */
+            color: #aaa;
+            cursor: pointer;
+            border-left: 1px solid #333;
+            white-space: nowrap;
+            font-size: 15px; /* حجم خط التاب */
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .bottom-tab:first-child { border-left: none; }
+        .bottom-tab.active {
+            background-color: #1e1e1e;
+            color: #fff;
+            border-bottom: 2px solid #007acc;
+        }
+        .bottom-tab:hover:not(.active) {
+            background-color: #3a3a3a;
+        }
+        .bottom-content {
+            flex: 1;
+            overflow: hidden;
+            display: none; /* إخفاء المحتوى غير النشط */
+        }
+        .bottom-content.active {
+            display: block; /* إظهار المحتوى النشط */
+        }
+        #live-preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: white; /* خلفية بيضاء للمعرض */
+            overflow: auto;
+        }
+        #console-output {
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* خلفية سوداء للوحة التحكم */
+            color: #0f0; /* نص أخضر (تقليدي للكونسول) */
+            padding: 15px; /* مساحة داخلية أكبر */
+            font-family: 'Cascadia Code', 'Consolas', 'Monaco', monospace; /* خط monospace للقراءة */
+            font-size: 14px; /* حجم خط مناسب */
+            overflow-y: auto;
+            box-sizing: border-box;
+            white-space: pre-wrap; /* للحفاظ على تنسيق الأسطر */
+            word-break: break-all; /* لمنع تجاوز الكلمات الطويلة */
+        }
+        .console-log-entry.info { color: #0f0; }
+        .console-log-entry.warn { color: #ff0; }
+        .console-log-entry.error { color: #f00; }
+
+        /* ========================================= */
+        /* شاشات تحميل/رسائل النظام */
+        /* ========================================= */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+        #loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .spinner {
+            border: 8px solid rgba(255, 255, 255, 0.3);
+            border-top: 8px solid #007acc;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ========================================= */
+        /* شاشات صغيرة (الهواتف) - لضمان الاستجابة */
+        /* ========================================= */
+        @media (max-width: 768px) {
+            .left-sidebar, .right-sidebar {
+                width: 0; /* إخفاء الأشرطة الجانبية افتراضياً */
+                min-width: 0;
+                padding: 0;
+                border: none;
+                transition: width 0.3s ease, padding 0.3s ease;
+            }
+            .left-sidebar.active, .right-sidebar.active {
+                width: 70%; /* إظهار الشريط الجانبي النشط */
+                padding: 15px 0;
+            }
+            .top-toolbar .app-title {
+                font-size: 20px;
+            }
+            .top-toolbar button {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            .bottom-panel {
+                height: 200px; /* لوحة سفلية أصغر */
+            }
+            .monaco-editor-hover, .monaco-editor-widget {
+                font-size: 14px !important; /* لضمان حجم خط كبير في تلميحات Monaco */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة التحميل الأولية -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>جاري تحميل MhrCod...</p>
+        <p style="font-size: 14px; color: #aaa;">(يتطلب اتصال بالإنترنت عند التشغيل الأول)</p>
+    </div>
+
+    <!-- شريط الأدوات العلوي -->
+    <div class="top-toolbar">
+        <span class="app-title">MhrCod</span>
+        <button id="open-folder-btn" title="فتح مجلد جديد">فتح مجلد</button>
+        <button id="new-file-btn" title="إنشاء ملف جديد">ملف جديد</button>
+        <button id="save-file-btn" title="حفظ الملف الحالي">حفظ الملف</button>
+        <button id="run-html-btn" title="تشغيل وعرض ملف HTML في المعاينة" class="disabled">تشغيل HTML</button>
+        <button id="settings-btn" title="إعدادات التطبيق">الإعدادات</button>
+    </div>
+
+    <div class="app-container">
+        <!-- الشريط الجانبي الأيسر (مستكشف الملفات) -->
+        <div id="left-sidebar" class="left-sidebar active">
+            <h3 class="sidebar-header">مستكشف الملفات</h3>
+            <div id="file-explorer" class="file-explorer">
+                <p class="no-content-message" id="no-folder-msg">لا يوجد مجلد مفتوح.<br>اضغط "فتح مجلد" للبدء.</p>
+                <ul id="file-list"></ul>
+            </div>
+        </div>
+
+        <div class="main-content-area">
+            <!-- تبويبات المحرر -->
+            <div id="editor-tabs" class="editor-tabs"></div>
+            <!-- منطقة تحرير الأكواد (Monaco Editor) -->
+            <div id="monaco-editor"></div>
+        </div>
+
+        <!-- الشريط الجانبي الأيمن (تحليل الأخطاء) -->
+        <div id="right-sidebar" class="right-sidebar active">
+            <h3 class="sidebar-header">الأخطاء والتحذيرات</h3>
+            <div id="error-list" class="error-list">
+                <p class="no-content-message" id="no-errors-msg">لا توجد أخطاء حالياً.</p>
+                <ul id="errors-ul"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- المنطقة السفلية (المعاينة الحية ولوحة التحكم) -->
+    <div class="bottom-panel">
+        <div class="bottom-tabs">
+            <div class="bottom-tab active" data-tab="preview">معاينة حية (HTML)</div>
+            <div class="bottom-tab" data-tab="console">لوحة التحكم</div>
+            <div class="bottom-tab" data-tab="debug">أدوات (قريباً)</div>
+        </div>
+        <div id="preview-content" class="bottom-content active">
+            <iframe id="live-preview-iframe"></iframe>
+        </div>
+        <div id="console-content" class="bottom-content">
+            <pre id="console-output"></pre>
+        </div>
+        <div id="debug-content" class="bottom-content">
+            <p class="no-content-message">أدوات التصحيح والتحليل ستكون هنا قريباً.</p>
+        </div>
+    </div>
+
+    <!-- PWA Service Worker Registration - هذا السكريبت يسجل ملف service-worker.js المنفصل -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js') // يجب أن يكون service-worker.js في نفس المجلد
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        displayAppMessage('Service Worker مسجل بنجاح.', 'info');
+                    })
+                    .catch(err => {
+                        console.error('ServiceWorker registration failed: ', err);
+                        displayAppMessage(`فشل تسجيل Service Worker: ${err.message}. قد لا يعمل التطبيق بدون اتصال.`, 'error');
+                    });
+            });
+        } else {
+            displayAppMessage('متصفحك لا يدعم Service Workers. التطبيق لن يعمل بدون اتصال بالإنترنت.', 'warn');
+        }
+    </script>
+
+    <!-- تحميل مكتبة Monaco Editor و Dexie.js من CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+
+    <script>
+        // =========================================
+        // بداية الكود JavaScript الرئيسي للمشروع MhrCod
+        // =========================================
+
+        // =========================================
+        // 1. المتغيرات العامة الأساسية
+        // =========================================
+        let editor; //Instance of Monaco Editor
+        let currentFileHandle = null; // FileSystemFileHandle for the currently active file
+        let currentDirectoryHandle = null; // FileSystemDirectoryHandle for the currently opened folder
+        let openFiles = []; // Array of { path, handle, content, language, editorModel } for open files
+        let activeFile = null; // The path of the currently active file in the editor
+        let editorLoadingPromise = null; // To ensure Monaco loads only once
+
+        // IndexedDB Database setup using Dexie.js
+        const DB_VERSION = 2; // Increased version for schema changes (e.g., storing handles)
+        const db = new Dexie('MhrCodDB');
+        db.version(DB_VERSION).stores({
+            editorState: '++id,lastOpenedFolderPath,lastOpenedFilePath', // Stores last opened folder path and active file
+            fileContents: '&path,content,language,lastAccessed', // Cache for file content (optional, for robustness)
+            directoryHandles: 'id,name,handle' // To persist directory handles
+        });
+
+        // =========================================
+        // 2. وظائف المساعدة العامة (Helper Functions)
+        // =========================================
+
+        /**
+         * يعرض رسالة في لوحة التحكم السفلية.
+         * @param {string} message النص المراد عرضه.
+         * @param {string} type نوع الرسالة ('info', 'warn', 'error').
+         */
+        function displayAppMessage(message, type = 'info') {
+            const consoleOutput = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const logEntry = document.createElement('div');
+            logEntry.classList.add('console-log-entry', type);
+            logEntry.innerHTML = `<span style="opacity: 0.7;">[${timestamp}]</span> ${message}`;
+            consoleOutput.appendChild(logEntry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight; // التمرير للأسفل
+            console.log(`[MhrCod ${type.toUpperCase()}] ${message}`); // سجل للكونسول الفعلي أيضاً
+        }
+
+        /**
+         * تحديث حالة أزرار شريط الأدوات بناءً على الملف النشط والمجلد المفتوح.
+         */
+        function updateToolbarButtons() {
+            const saveBtn = document.getElementById('save-file-btn');
+            const runHtmlBtn = document.getElementById('run-html-btn');
+            const newFileBtn = document.getElementById('new-file-btn');
+
+            saveBtn.classList.toggle('disabled', !activeFile);
+            newFileBtn.classList.toggle('disabled', !currentDirectoryHandle);
+
+            const activeFileObj = openFiles.find(f => f.path === activeFile);
+            const isHtml = activeFileObj && activeFileObj.language === 'html';
+            runHtmlBtn.classList.toggle('disabled', !isHtml);
+        }
+
+        // =========================================
+        // 3. إدارة الملفات (File System Access API)
+        // =========================================
+
+        /**
+         * يفتح نافذة اختيار المجلد ويطلب الإذن من المستخدم.
+         * يحفظ المجلد المختار في IndexedDB.
+         */
+        document.getElementById('open-folder-btn').addEventListener('click', async () => {
+            if (!window.showDirectoryPicker) {
+                displayAppMessage('متصفحك لا يدعم File System Access API. قد لا تتمكن من فتح المجلدات.', 'error');
+                return;
+            }
+
+            try {
+                // طلب إذن الوصول لمجلد
+                currentDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                displayAppMessage(`تم فتح المجلد: ${currentDirectoryHandle.name}`, 'info');
+
+                // حفظ الـ handle في IndexedDB للاستخدامات المستقبلية
+                // نستخدم ID ثابت 1 لأننا نحتاج لتخزين مجلد واحد "مفتوح حالياً"
+                await db.directoryHandles.put({ id: 1, name: currentDirectoryHandle.name, handle: currentDirectoryHandle });
+
+                await updateFileExplorerUI(); // تحديث مستكشف الملفات
+                closeAllFiles(); // إغلاق أي ملفات مفتوحة سابقة
+                editor.setValue('<!-- اختر ملفاً من مستكشف الملفات أو أنشئ ملفاً جديداً. -->');
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    displayAppMessage('تم إلغاء عملية فتح المجلد.', 'warn');
+                } else {
+                    displayAppMessage(`خطأ في فتح المجلد: ${error.message}`, 'error');
+                    console.error("Error opening folder:", error);
+                }
+            } finally {
+                updateToolbarButtons();
+            }
+        });
+
+        /**
+         * يقرأ محتوى الملف من FileSystemFileHandle.
+         * @param {FileSystemFileHandle} fileHandle
+         * @returns {Promise<string>} محتوى الملف.
+         */
+        async function readFileContent(fileHandle) {
+            const file = await fileHandle.getFile();
+            return await file.text();
+        }
+
+        /**
+         * يكتب المحتوى إلى الملف باستخدام FileSystemFileHandle.
+         * @param {FileSystemFileHandle} fileHandle
+         * @param {string} content المحتوى المراد كتابته.
+         */
+        async function writeFileContent(fileHandle, content) {
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+        }
+
+        /**
+         * ينشئ ملفاً جديداً في المجلد الحالي.
+         */
+        document.getElementById('new-file-btn').addEventListener('click', async () => {
+            if (!currentDirectoryHandle) {
+                displayAppMessage('الرجاء فتح مجلد أولاً لإنشاء ملفات جديدة.', 'warn');
+                return;
+            }
+
+            let fileName = prompt('أدخل اسم الملف الجديد (مثال: index.html, script.js, MyClass.java):');
+            if (!fileName) return;
+
+            // نظام تسمية تلقائي ذكي للملفات
+            let counter = 1;
+            let finalFileName = fileName;
+            let nameParts = fileName.split('.');
+            let baseName = nameParts.slice(0, -1).join('.');
+            let extension = nameParts.length > 1 ? '.' + nameParts[nameParts.length - 1] : '';
+
+            // تحقق مما إذا كان الملف موجودًا بالفعل.
+            while (true) {
+                try {
+                    await currentDirectoryHandle.getFileHandle(finalFileName, { create: false });
+                    // إذا كان موجوداً، حاول باسم آخر.
+                    finalFileName = `${baseName}-${counter}${extension}`;
+                    counter++;
+                } catch (e) {
+                    // إذا لم يكن موجوداً، يمكننا استخدامه.
+                    if (e.name === 'NotFoundError') {
+                        break;
+                    }
+                    displayAppMessage(`خطأ في التحقق من وجود الملف: ${e.message}`, 'error');
+                    return;
+                }
+            }
+
+            try {
+                const newFileHandle = await currentDirectoryHandle.getFileHandle(finalFileName, { create: true });
+                await writeFileContent(newFileHandle, ''); // إنشاء ملف فارغ
+
+                displayAppMessage(`تم إنشاء ملف جديد: ${finalFileName}`, 'info');
+                await updateFileExplorerUI(); // تحديث مستكشف الملفات
+                await openFile(newFileHandle); // فتح الملف الجديد في المحرر
+
+            } catch (error) {
+                displayAppMessage(`خطأ في إنشاء الملف: ${error.message}`, 'error');
+                console.error("Error creating new file:", error);
+            } finally {
+                updateToolbarButtons();
+            }
+        });
+
+        /**
+         * يحفظ محتوى الملف النشط في نظام الملفات.
+         */
+        document.getElementById('save-file-btn').addEventListener('click', async () => {
+            if (!activeFile) {
+                displayAppMessage('لا يوجد ملف نشط لحفظه.', 'warn');
+                return;
+            }
+
+            const activeFileObj = openFiles.find(f => f.path === activeFile);
+            if (activeFileObj && activeFileObj.handle) {
+                try {
+                    await writeFileContent(activeFileObj.handle, activeFileObj.content);
+                    displayAppMessage(`تم حفظ الملف: ${activeFileObj.path}`, 'info');
+                } catch (error) {
+                    displayAppMessage(`خطأ في حفظ الملف: ${activeFileObj.path} - ${error.message}`, 'error');
+                    console.error("Error saving file:", error);
+                }
+            } else {
+                displayAppMessage('لا يمكن حفظ الملف. تأكد من فتحه عبر "فتح مجلد".', 'warn');
+            }
+        });
+
+        // =========================================
+        // 4. إدارة واجهة المستخدم (UI Management)
+        // =========================================
+
+        /**
+         * تحديث الواجهة الرسومية لمستكشف الملفات.
+         */
+        async function updateFileExplorerUI() {
+            const fileListUl = document.getElementById('file-list');
+            fileListUl.innerHTML = ''; // مسح القائمة الحالية
+            document.getElementById('no-folder-msg').style.display = currentDirectoryHandle ? 'none' : 'block';
+
+            if (currentDirectoryHandle) {
+                for await (const entry of currentDirectoryHandle.values()) {
+                    const li = document.createElement('li');
+                    li.textContent = entry.name;
+                    li.dataset.name = entry.name;
+                    li.dataset.kind = entry.kind; // 'file' or 'directory'
+
+                    const iconSpan = document.createElement('span');
+                    iconSpan.classList.add(entry.kind === 'file' ? 'file-icon' : 'folder-icon');
+                    li.prepend(iconSpan);
+
+                    if (entry.kind === 'file') {
+                        const fileExtension = entry.name.split('.').pop().toLowerCase();
+                        li.dataset.fileExt = fileExtension;
+                        li.onclick = async () => {
+                            const fileHandle = await currentDirectoryHandle.getFileHandle(entry.name);
+                            await openFile(fileHandle);
+                        };
+                    } else {
+                        // For directories, currently not recursive, just indicate it's a folder
+                        // Future improvement: implement recursive folder browsing
+                        li.style.color = '#8be9fd'; // لون مميز للمجلدات
+                        li.style.fontWeight = 'bold';
+                        li.onclick = () => displayAppMessage(`المجلد "${entry.name}" غير قابل للفتح حالياً. (ميزة استعراض المجلدات الفرعية قريباً).`, 'warn');
+                    }
+                    fileListUl.appendChild(li);
+                }
+            }
+        }
+
+        /**
+         * يفتح ملفاً في المحرر ويضيف تاباً له.
+         * @param {FileSystemFileHandle} fileHandle
+         */
+        async function openFile(fileHandle) {
+            try {
+                const filePath = fileHandle.name;
+                const existingFile = openFiles.find(f => f.path === filePath);
+                if (existingFile) {
+                    switchToFile(filePath);
+                    return;
+                }
+
+                const content = await readFileContent(fileHandle);
+                const language = getMonacoLanguage(filePath);
+
+                // إنشاء نموذج جديد لـ Monaco Editor
+                const model = monaco.editor.createModel(content, language, monaco.Uri.file(filePath));
+
+                const newFile = {
+                    path: filePath,
+                    handle: fileHandle,
+                    content: content,
+                    language: language,
+                    editorModel: model
+                };
+                openFiles.push(newFile);
+
+                // إضافة تاب جديد
+                const tabDiv = document.createElement('div');
+                tabDiv.classList.add('editor-tab');
+                tabDiv.dataset.path = filePath;
+                tabDiv.textContent = filePath;
+                const closeBtn = document.createElement('button');
+                closeBtn.classList.add('close-tab');
+                closeBtn.innerHTML = '&times;'; // رمز X
+                closeBtn.title = `إغلاق ${filePath}`;
+                closeBtn.onclick = (e) => {
+                    e.stopPropagation(); // منع فتح الملف عند الضغط على زر الإغلاق
+                    closeFile(filePath);
+                };
+                tabDiv.appendChild(closeBtn);
+                tabDiv.onclick = () => switchToFile(filePath);
+                document.getElementById('editor-tabs').appendChild(tabDiv);
+
+                switchToFile(filePath); // التبديل إلى الملف الجديد
+
+                displayAppMessage(`تم فتح الملف: ${filePath}`, 'info');
+
+            } catch (error) {
+                displayAppMessage(`خطأ في فتح الملف: ${fileHandle.name} - ${error.message}`, 'error');
+                console.error("Error opening file:", error);
+            } finally {
+                updateToolbarButtons();
+            }
+        }
+
+        /**
+         * يغلق ملفاً من المحرر ويزيل التاب الخاص به.
+         * @param {string} filePath مسار الملف المراد إغلاقه.
+         */
+        function closeFile(filePath) {
+            const index = openFiles.findIndex(f => f.path === filePath);
+            if (index > -1) {
+                const closedFile = openFiles[index];
+                closedFile.editorModel.dispose(); // تحرير نموذج المحرر لتجنب تسرب الذاكرة
+
+                openFiles.splice(index, 1); // إزالة الملف من القائمة
+
+                const tabDiv = document.querySelector(`.editor-tab[data-path="${filePath}"]`);
+                if (tabDiv) {
+                    tabDiv.remove();
+                }
+
+                // إذا كان الملف المغلق هو النشط، قم بالتبديل إلى ملف آخر أو عرض رسالة فارغة
+                if (activeFile === filePath) {
+                    if (openFiles.length > 0) {
+                        switchToFile(openFiles[0].path);
+                    } else {
+                        editor.setValue('<!-- لا يوجد ملف مفتوح. -->');
+                        editor.setModel(null); // مسح النموذج من المحرر
+                        activeFile = null;
+                        updateLivePreview(''); // مسح المعاينة
+                        setMonacoMarkers(null, []); // مسح الأخطاء من الشريط الجانبي
+                        document.getElementById('errors-ul').innerHTML = '';
+                        document.getElementById('no-errors-msg').style.display = 'block';
+                    }
+                }
+                displayAppMessage(`تم إغلاق الملف: ${filePath}`, 'info');
+            }
+            updateToolbarButtons();
+        }
+
+        /**
+         * يغلق جميع الملفات المفتوحة في المحرر.
+         */
+        function closeAllFiles() {
+            while (openFiles.length > 0) {
+                closeFile(openFiles[0].path);
+            }
+        }
+
+        /**
+         * يقوم بالتبديل بين الملفات المفتوحة في المحرر.
+         * @param {string} filePath مسار الملف المراد تفعيله.
+         */
+        function switchToFile(filePath) {
+            const fileToActivate = openFiles.find(f => f.path === filePath);
+            if (fileToActivate && editor) {
+                editor.setModel(fileToActivate.editorModel);
+                activeFile = filePath;
+                editor.focus(); // نقل التركيز للمحرر
+
+                // تحديث التبويبات النشطة
+                document.querySelectorAll('.editor-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.path === filePath);
+                });
+
+                // تحديث المعاينة الحية
+                if (fileToActivate.language === 'html') {
+                    updateLivePreview(fileToActivate.content);
+                    document.getElementById('run-html-btn').classList.remove('disabled');
+                } else {
+                    updateLivePreview('<p style="text-align: center; color: #888;">لا توجد معاينة لغير ملفات HTML.</p>');
+                    document.getElementById('run-html-btn').classList.add('disabled');
+                }
+
+                // إعادة تحليل الأخطاء للملف النشط
+                const errors = performLinting(fileToActivate.language, fileToActivate.content);
+                setMonacoMarkers(fileToActivate.editorModel, errors);
+
+                displayAppMessage(`تم التبديل إلى: ${filePath}`, 'info');
+            }
+            updateToolbarButtons();
+        }
+
+        // =========================================
+        // 5. وظائف Monaco Editor المحددة
+        // =========================================
+
+        /**
+         * الحصول على لغة Monaco Editor من امتداد الملف.
+         * @param {string} filename اسم الملف.
+         * @returns {string} اسم اللغة المتوافق مع Monaco Editor.
+         */
+        function getMonacoLanguage(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            switch (ext) {
+                case 'html': return 'html';
+                case 'htm': return 'html';
+                case 'css': return 'css';
+                case 'js': return 'javascript';
+                case 'ts': return 'typescript';
+                case 'java': return 'java';
+                case 'c': return 'c';
+                case 'cpp': return 'cpp';
+                case 'json': return 'json';
+                case 'xml': return 'xml';
+                case 'py': return 'python';
+                case 'md': return 'markdown';
+                case 'txt': return 'plaintext';
+                default: return 'plaintext';
+            }
+        }
+
+        /**
+         * يضع علامات الأخطاء (الخطوط الحمراء المتعرجة) في المحرر.
+         * @param {object} model نموذج المحرر الحالي.
+         * @param {Array<object>} errors قائمة الأخطاء.
+         */
+        function setMonacoMarkers(model, errors) {
+            if (!monaco || !model) {
+                return;
+            }
+            const markers = errors.map(err => ({
+                severity: monaco.MarkerSeverity[err.type === 'error' ? 'Error' : 'Warning'],
+                startLineNumber: err.lineNumber,
+                endLineNumber: err.lineNumber,
+                startColumn: err.column,
+                endColumn: err.column + (err.length || 1), // طول الخطأ إذا كان محدداً
+                message: err.message
+            }));
+            monaco.editor.setModelMarkers(model, 'MhrCodLinter', markers); // 'owner' هو اسم خاص بنا
+        }
+
+        /**
+         * وظيفة بسيطة جداً لتحليل الأخطاء (Linting).
+         * ملاحظة: هذا لن يكون بديلاً عن مترجمات لغات مثل Java/C++.
+         * @param {string} language لغة الكود.
+         * @param {string} code الكود المراد تحليله.
+         * @returns {Array<object>} قائمة بالأخطاء المكتشفة.
+         */
+        function performLinting(language, code) {
+            const errors = [];
+            const lines = code.split('\n');
+
+            // HTML Linting (أمثلة بسيطة جداً)
+            if (language === 'html') {
+                if (!code.includes('<!DOCTYPE html>')) {
+                    errors.push({ message: "Missing HTML5 doctype declaration.", lineNumber: 1, column: 1, type: 'warn' });
+                }
+                const divMatches = [...code.matchAll(/<div[^>]*>/g)];
+                const divCloseMatches = [...code.matchAll(/<\/div>/g)];
+                if (divMatches.length !== divCloseMatches.length) {
+                    const lastDivOpenMatch = divMatches[divMatches.length - 1];
+                    const line = code.substring(0, lastDivOpenMatch.index).split('\n').length;
+                    const col = lastDivOpenMatch.index - code.lastIndexOf('\n', lastDivOpenMatch.index - 1);
+                    errors.push({ message: "Unmatched <div> tag. Missing closing </div>?", lineNumber: line, column: col, type: 'error' });
+                }
+            }
+
+            // JavaScript Linting (أمثلة بسيطة جداً)
+            if (language === 'javascript') {
+                lines.forEach((line, i) => {
+                    const lineNumber = i + 1;
+                    if (line.includes('var ')) {
+                        errors.push({ message: "Consider using 'let' or 'const' instead of 'var'.", lineNumber: lineNumber, column: line.indexOf('var ') + 1, type: 'warn' });
+                    }
+                    if (line.includes('==') && !line.includes('===')) {
+                        errors.push({ message: "Consider using '===' for strict equality comparison.", lineNumber: lineNumber, column: line.indexOf('==') + 1, type: 'warn' });
+                    }
+                });
+            }
+
+            // Java/C/C++ Linting (فقط تحقق من أقواس بسيطة كمثال)
+            if (language === 'java' || language === 'c' || language === 'cpp') {
+                let curlyBraceCount = 0;
+                let parenthesisCount = 0;
+                let squareBracketCount = 0;
+
+                lines.forEach((line, i) => {
+                    const lineNumber = i + 1;
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
+                        if (char === '{') curlyBraceCount++;
+                        if (char === '}') curlyBraceCount--;
+                        if (char === '(') parenthesisCount++;
+                        if (char === ')') parenthesisCount--;
+                        if (char === '[') squareBracketCount++;
+                        if (char === ']') squareBracketCount--;
+
+                        if (curlyBraceCount < 0) {
+                            errors.push({ message: "Unmatched '}' brace.", lineNumber: lineNumber, column: j + 1, type: 'error' });
+                            curlyBraceCount = 0; // Reset to avoid cascade
+                        }
+                        if (parenthesisCount < 0) {
+                            errors.push({ message: "Unmatched ')' parenthesis.", lineNumber: lineNumber, column: j + 1, type: 'error' });
+                            parenthesisCount = 0;
+                        }
+                        if (squareBracketCount < 0) {
+                            errors.push({ message: "Unmatched ']' bracket.", lineNumber: lineNumber, column: j + 1, type: 'error' });
+                            squareBracketCount = 0;
+                        }
+                    }
+                });
+
+                if (curlyBraceCount !== 0) {
+                    errors.push({ message: "Missing curly brace. Check for unmatched '{' or '}'.", lineNumber: lines.length, column: lines[lines.length-1].length, type: 'error' });
+                }
+                if (parenthesisCount !== 0) {
+                    errors.push({ message: "Missing parenthesis. Check for unmatched '(' or ')'.", lineNumber: lines.length, column: lines[lines.length-1].length, type: 'error' });
+                }
+                if (squareBracketCount !== 0) {
+                    errors.push({ message: "Missing square bracket. Check for unmatched '[' or ']'.", lineNumber: lines.length, column: lines[lines.length-1].length, type: 'error' });
+                }
+            }
+
+
+            // تحديث قائمة الأخطاء في الشريط الجانبي
+            const errorsUl = document.getElementById('errors-ul');
+            errorsUl.innerHTML = '';
+            if (errors.length === 0) {
+                document.getElementById('no-errors-msg').style.display = 'block';
+            } else {
+                document.getElementById('no-errors-msg').style.display = 'none';
+                errors.forEach(err => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${err.message}</span><span class="line-col">السطر ${err.lineNumber}, العمود ${err.column}</span>`;
+                    li.classList.add(err.type); // لإضافة تنسيق خاص بالنوع
+                    li.onclick = () => {
+                        editor.revealLineInCenter(err.lineNumber);
+                        editor.focus();
+                    };
+                    errorsUl.appendChild(li);
+                });
+            }
+            return errors;
+        }
+
+
+        // =========================================
+        // 6. المعاينة الحية و لوحة التحكم (Live Preview & Console)
+        // =========================================
+
+        /**
+         * يقوم بتحديث المعاينة الحية لملف HTML.
+         * @param {string} content محتوى HTML.
+         */
+        function updateLivePreview(content) {
+            const iframe = document.getElementById('live-preview-iframe');
+            if (iframe) {
+                // استخدام Blob URL لتحميل المحتوى لتجنب مشاكل الأمان مع srcdoc
+                // ولضمان تحميل الموارد النسبية بشكل صحيح داخل iframe
+                const blob = new Blob([content], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                iframe.src = url;
+                // تحرير الذاكرة بعد تحميل iframe
+                iframe.onload = () => URL.revokeObjectURL(url);
+            }
+        }
+
+        /**
+         * تفعيل زر "تشغيل HTML" وتشغيل الملف الحالي.
+         */
+        document.getElementById('run-html-btn').addEventListener('click', () => {
+            if (!activeFile) {
+                displayAppMessage('لا يوجد ملف نشط لتشغيله.', 'warn');
+                return;
+            }
+            const activeFileObj = openFiles.find(f => f.path === activeFile);
+            if (activeFileObj && activeFileObj.language === 'html') {
+                updateLivePreview(activeFileObj.content);
+                document.querySelector('.bottom-tab[data-tab="preview"]').click(); // التبديل إلى تاب المعاينة
+                displayAppMessage(`تم تحديث معاينة HTML لـ: ${activeFileObj.path}`, 'info');
+            } else {
+                displayAppMessage('الملف النشط ليس ملف HTML. لا يمكن تشغيل المعاينة الحية.', 'warn');
+            }
+        });
+
+        /**
+         * تبديل تبويبات اللوحة السفلية.
+         */
+        document.querySelectorAll('.bottom-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                // إزالة النشاط من جميع التبويبات والمحتويات
+                document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.bottom-content').forEach(c => c.classList.remove('active'));
+
+                // تفعيل التاب والمحتوى المحدد
+                e.target.classList.add('active');
+                document.getElementById(`${e.target.dataset.tab}-content`).classList.add('active');
+            });
+        });
+
+        // =========================================
+        // 7. إدارة حالة التطبيق (State Management)
+        // =========================================
+
+        /**
+         * يحفظ حالة المحرر الحالية في IndexedDB (لتحسين تجربة PWA).
+         * يتم استدعاؤها بشكل دوري.
+         */
+        async function saveEditorState() {
+            try {
+                const state = {
+                    id: 1, // استخدام ID ثابت لتحديث نفس السجل
+                    lastOpenedFolderPath: currentDirectoryHandle ? currentDirectoryHandle.name : null,
+                    lastOpenedFilePath: activeFile,
+                    openFilesData: openFiles.map(f => ({ path: f.path, language: f.language })) // لا نحفظ المحتوى، فقط المسارات
+                };
+                await db.editorState.put(state);
+                // displayAppMessage('تم حفظ حالة المحرر تلقائياً.', 'info'); // لا تعرضها كل 5 ثواني
+            } catch (e) {
+                console.warn('فشل حفظ حالة المحرر:', e);
+            }
+        }
+
+        /**
+         * يستعيد حالة المحرر من IndexedDB عند بدء التشغيل.
+         */
+        async function loadEditorState() {
+            try {
+                const state = await db.editorState.get(1);
+                if (state && state.lastOpenedFolderPath) {
+                    const savedHandleEntry = await db.directoryHandles.get(1);
+                    if (savedHandleEntry && savedHandleEntry.handle) {
+                        currentDirectoryHandle = savedHandleEntry.handle;
+                        displayAppMessage(`تم استعادة المجلد الأخير: ${currentDirectoryHandle.name}.`, 'info');
+                        await updateFileExplorerUI();
+
+                        // التحقق من صلاحية الإذن وإعادة طلبه إذا لزم الأمر (خاصة بعد إعادة تشغيل الجهاز)
+                        try {
+                            // محاولة الوصول للتأكد من أن الإذن لا يزال سارياً
+                            await currentDirectoryHandle.checkPermission({ mode: 'readwrite' });
+                        } catch (e) {
+                            displayAppMessage('فقد إذن الوصول للمجلد. الرجاء فتح المجلد يدوياً مرة أخرى.', 'warn');
+                            currentDirectoryHandle = null; // مسح الـ handle لأن الإذن غير صالح
+                            await db.directoryHandles.delete(1); // إزالة الـ handle الفاسد
+                            updateToolbarButtons();
+                            return; // توقف هنا ولا تحاول فتح الملفات
+                        }
+
+                        // استعادة الملفات المفتوحة (قراءة محتواها مباشرة)
+                        for (const fileData of state.openFilesData) {
+                            try {
+                                const fileHandle = await currentDirectoryHandle.getFileHandle(fileData.path, { create: false });
+                                await openFile(fileHandle);
+                            } catch (e) {
+                                displayAppMessage(`فشل إعادة فتح الملف "${fileData.path}": ${e.message}`, 'warn');
+                                console.warn(`فشل إعادة فتح الملف ${fileData.path}:`, e);
+                            }
+                        }
+
+                        // التبديل إلى الملف النشط الأخير
+                        if (state.lastOpenedFilePath && openFiles.find(f => f.path === state.lastOpenedFilePath)) {
+                            switchToFile(state.lastOpenedFilePath);
+                        }
+                    } else {
+                        displayAppMessage('لم يتم العثور على معلومات المجلد المحفوظة في الذاكرة.', 'warn');
+                    }
+                } else {
+                    displayAppMessage('لا توجد حالة محرر محفوظة مسبقاً. ابدأ بـ "فتح مجلد".', 'info');
+                }
+            } catch (e) {
+                displayAppMessage(`خطأ أثناء استعادة حالة المحرر: ${e.message}`, 'error');
+                console.error('فشل تحميل حالة المحرر:', e);
+            } finally {
+                // إخفاء شاشة التحميل بعد محاولة الاستعادة
+                document.getElementById('loading-overlay').classList.add('hidden');
+                updateToolbarButtons();
+            }
+        }
+
+        // =========================================
+        // 8. تهيئة التطبيق وبدء التشغيل (Initialization)
+        // =========================================
+
+        /**
+         * تهيئة Monaco Editor عند تحميل الصفحة.
+         * هذا يضمن تحميل المحرر مرة واحدة فقط.
+         */
+        async function initializeMonaco() {
+            if (editorLoadingPromise) {
+                return editorLoadingPromise;
+            }
+
+            editorLoadingPromise = new Promise(resolve => {
+                require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+                require(['vs/editor/editor.main'], function () {
+                    editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+                        value: '<!-- اهلا بك في MhrCod! اختر "فتح مجلد" للبدء. -->',
+                        language: 'plaintext', // لغة افتراضية
+                        theme: 'vs-dark',
+                        minimap: { enabled: true }, // تفعيل minimap
+                        fontSize: 18, // حجم خط كبير لسهولة القراءة
+                        tabSize: 4,
+                        insertSpaces: true,
+                        automaticLayout: true, // مهم لتعديل الحجم تلقائيا عند تغيير حجم الشاشة
+                        scrollBeyondLastLine: false,
+                        folding: true, // تمكين طي الأقسام
+                        autoClosingBrackets: 'always',
+                        autoClosingQuotes: 'always',
+                        bracketPairColorization: { enabled: true },
+                        matchBrackets: 'always',
+                        readOnly: false,
+                        lineNumbersMinChars: 4, // مسافة أكبر لأرقام الأسطر
+                        cursorSmoothCaretAnimation: 'on',
+                        selectionHighlight: true,
+                        renderLineHighlight: 'all',
+                        overviewRulerBorder: false,
+                        wordWrap: 'on', // تفعيل التفاف الكلمات
+                        lineHeight: 25, // مسافة أكبر بين الأسطر
+                        suggestOnTriggerCharacters: true, // تفعيل الاقتراحات
+                        quickSuggestions: true, // اقتراحات سريعة
+                        dragAndDrop: true // سحب وإفلات
+                    });
+
+                    // الاستماع لتغييرات المحرر وحفظ المحتوى وتحديث الأخطاء
+                    editor.onDidChangeModelContent(() => {
+                        if (activeFile) {
+                            const activeFileObj = openFiles.find(f => f.path === activeFile);
+                            if (activeFileObj) {
+                                const newContent = editor.getValue();
+                                activeFileObj.content = newContent; // تحديث المحتوى في الذاكرة
+
+                                // تحديث المعاينة الحية إذا كان ملف HTML
+                                if (activeFileObj.language === 'html' && document.querySelector('.bottom-tab.active').dataset.tab === 'preview') {
+                                    updateLivePreview(newContent);
+                                }
+
+                                // تحليل الأخطاء
+                                const errors = performLinting(activeFileObj.language, newContent);
+                                setMonacoMarkers(activeFileObj.editorModel, errors);
+                            }
+                        }
+                    });
+
+                    // استعادة حالة المحرر بعد تهيئة Monaco
+                    loadEditorState();
+                    resolve();
+                });
+            });
+            return editorLoadingPromise;
+        }
+
+        // حفظ الحالة كل 5 ثواني
+        setInterval(saveEditorState, 5000);
+
+        // عند تحميل النافذة، قم بتهيئة Monaco Editor
+        window.addEventListener('load', async () => {
+            displayAppMessage('جاري تحميل المحرر...', 'info');
+            await initializeMonaco();
+            displayAppMessage('MhrCod جاهز! ابدأ بالعمل.', 'info');
+        });
+
+        // =========================================
+        // 9. ميزات إضافية (أمثلة ونقاط للتوسع)
+        // =========================================
+
+        // يمكن إضافة وظائف الإعدادات هنا
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            alert('صفحة الإعدادات قريباً! يمكنك تغيير حجم الخط، الثيمات، وغيرها.');
+            displayAppMessage('ميزة الإعدادات قيد التطوير.', 'info');
+        });
+
+        // التعامل مع تغيرات حجم الشاشة (مهم لـ Monaco Editor)
+        window.addEventListener('resize', () => {
+            if (editor) {
+                editor.layout();
+            }
+        });
+
+        // =========================================
+        // نهاية الكود JavaScript الرئيسي
+        // =========================================
+    </script>
+</body>
+</html>
